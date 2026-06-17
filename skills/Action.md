@@ -4,6 +4,8 @@ You are generating implementations for the XenithLibrary Action system.
 
 Actions are runtime executable logic triggered by game events.
 
+USE LATEST MINECRAFT PAPERMC API VERSIONS (NOT SNAPSHOT)
+
 ---
 
 # CORE ARCHITECTURE
@@ -53,6 +55,15 @@ Chat.colorize(text)
 
 Example
 ```java
+package me.ogali.xenithlibrary.actions.impl;
+
+import me.clip.placeholderapi.PlaceholderAPI;
+import me.ogali.xenithlibrary.XenithLibrary;
+import me.ogali.xenithlibrary.actions.domain.AbstractAction;
+import me.ogali.xenithlibrary.actions.domain.ActionContext;
+import me.ogali.xenithlibrary.shared.DomainConfig;
+import me.ogali.xenithlibrary.utilities.Chat;
+
 public class ExampleAction extends AbstractAction {
 
     private String value;
