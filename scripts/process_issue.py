@@ -14,15 +14,41 @@ from git import Repo
 WORKDIR = os.getcwd()
 SKILL_DIR = os.path.join(WORKDIR, "skills")
 
+# Must exactly match the issue-form labels in .github/ISSUE_TEMPLATE/*.yml
+FIELD_LABELS = ("Plugin", "Skill", "Description")
+
+FIELD_PATTERN = re.compile(
+    rf"^#{{1,6}}\s*({'|'.join(FIELD_LABELS)})\s*$",
+    re.MULTILINE
+)
+
 
 # ---------------------------
 # HELPERS
 # ---------------------------
 
-def extract_field(body: str, field: str):
-    pattern = rf"{field}\s*\n+(.*?)(?=\n[A-Z][^\n]*\n|$)"
-    match = re.search(pattern, body, re.DOTALL | re.IGNORECASE)
-    return match.group(1).strip() if match else None
+def parse_issue_fields(body: str) -> dict:
+    """
+    Split a GitHub issue-form body into {label: value} pairs.
+
+    GitHub renders each form field as a markdown heading matching its
+    `label` (e.g. "### Skill"), followed by the submitted value. This
+    anchors on the known field labels themselves (rather than guessing
+    field boundaries from capitalization), so it doesn't break when a
+    value is short, is the last field, or happens to contain text that
+    looks like a heading.
+    """
+    matches = list(FIELD_PATTERN.finditer(body))
+    fields = {}
+
+    for i, m in enumerate(matches):
+        label = m.group(1)
+        start = m.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(body)
+        value = body[start:end].strip()
+        fields[label] = None if value == "_No response_" else value
+
+    return fields
 
 
 def load_skill(skill_name: str):
@@ -59,10 +85,10 @@ def main():
 
     body = os.environ["ISSUE_BODY"]
 
-    plugin = extract_field(body, "Plugin")
-    skill = extract_field(body, "Skill")
-    description = extract_field(body, "Description")
-    config = extract_field(body, "Configuration")
+    fields = parse_issue_fields(body)
+    plugin = fields.get("Plugin")
+    skill = fields.get("Skill")
+    description = fields.get("Description")
 
     # ---------------------------
     # Load skill context
@@ -92,9 +118,6 @@ def main():
     ## TASK
     {description}
 
-    ## CONFIGURATION
-    {config}
-
     ## RULES
     - Return ONLY files in this format:
 
@@ -107,8 +130,7 @@ def main():
     """.format(
     skill_context=skill_context,
     plugin=plugin,
-    description=description,
-    config=config
+    description=description
     )
 
     response = client.models.generate_content(
