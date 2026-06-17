@@ -80,28 +80,36 @@ def main():
         api_key=os.environ["GEMINI_API_KEY"]
     )
 
-    prompt = f"""
-You are an expert Java Minecraft plugin developer.
+    prompt = """
+    You are an expert Java Minecraft plugin developer.
 
-## SKILL CONTEXT
-{skill_context}
+    ## SKILL CONTEXT
+    {skill_context}
 
-## PROJECT
-Plugin: {plugin}
+    ## PROJECT
+    Plugin: {plugin}
 
-## TASK
-{description}
+    ## TASK
+    {description}
 
-## RULES
-- Return ONLY files in this format:
+    ## CONFIGURATION
+    {config}
 
-<file path="src/.../Example.java">
-public class Example { }
-</file>
+    ## RULES
+    - Return ONLY files in this format:
 
-- Follow existing architecture patterns.
-- Do not add explanations. JUST CODE
-"""
+    <file path="src/.../Example.java">
+    public class Example { }
+    </file>
+
+    - Follow existing architecture patterns.
+    - Do not add explanations. JUST CODE
+    """.format(
+    skill_context=skill_context,
+    plugin=plugin,
+    description=description,
+    config=config
+    )
 
     response = client.models.generate_content(
         model="gemini-2.5-flash",
