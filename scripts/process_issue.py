@@ -2,7 +2,7 @@ import os
 import re
 import subprocess
 
-from github import Github
+from github import Github, Auth
 from google import genai
 from git import Repo
 
@@ -15,7 +15,7 @@ WORKDIR = os.getcwd()
 SKILL_DIR = os.path.join(WORKDIR, "skills")
 
 # Must exactly match the issue-form labels in .github/ISSUE_TEMPLATE/*.yml
-FIELD_LABELS = ("Plugin", "Skill", "Description")
+FIELD_LABELS = ("Plugin", "Skill", "Description", "Configuration")
 
 FIELD_PATTERN = re.compile(
     rf"^#{{1,6}}\s*({'|'.join(FIELD_LABELS)})\s*$",
@@ -79,7 +79,7 @@ def main():
     # ---------------------------
     # GitHub client
     # ---------------------------
-    gh = Github(token)
+    gh = Github(auth=Auth.Token(token))
     repo = gh.get_repo(repo_full)
     issue = repo.get_issue(issue_number)
 
@@ -89,6 +89,7 @@ def main():
     plugin = fields.get("Plugin")
     skill = fields.get("Skill")
     description = fields.get("Description")
+    config = fields.get("Configuration")
 
     # ---------------------------
     # Load skill context
@@ -102,8 +103,14 @@ def main():
     # ---------------------------
     # Gemini client
     # ---------------------------
+    gemini_api_key = os.environ.get("GEMINI_API_KEY")
+
+    if not gemini_api_key:
+        issue.create_comment("Setup error: `GEMINI_API_KEY` secret is missing or empty.")
+        return
+
     client = genai.Client(
-        api_key=os.environ["GEMINI_API_KEY"]
+        api_key=gemini_api_key
     )
 
     prompt = """
@@ -118,6 +125,9 @@ def main():
     ## TASK
     {description}
 
+    ## CONFIGURATION
+    {config}
+
     ## RULES
     - Return ONLY files in this format:
 
@@ -130,7 +140,8 @@ def main():
     """.format(
     skill_context=skill_context,
     plugin=plugin,
-    description=description
+    description=description,
+    config=config
     )
 
     response = client.models.generate_content(
