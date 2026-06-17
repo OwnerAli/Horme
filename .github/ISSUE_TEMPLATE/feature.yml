@@ -5,7 +5,7 @@ description: Request an AI-generated feature
 body:
 
   - type: dropdown
-    id: skill
+    id: plugin
     attributes:
       label: Skill
       description: Select the AI skill to use
