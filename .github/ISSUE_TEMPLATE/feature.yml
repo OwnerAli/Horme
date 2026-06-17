@@ -7,7 +7,7 @@ body:
   - type: dropdown
     id: plugin
     attributes:
-      label: Skill
+      label: Plugin
       description: Select the AI skill to use
       options:
         - Xenith
